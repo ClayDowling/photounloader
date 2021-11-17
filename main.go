@@ -24,15 +24,23 @@ type CopyRequest struct {
 
 var copychannel chan CopyRequest
 
+func shouldCopy(req CopyRequest) bool {
+	srcinfo, err := os.Stat(req.Source)
+	if err != nil { // Do not copy if there is no source file
+		return false
+	}
+	dstinfo, err := os.Stat(req.Destination)
+	if err != nil { // Definite copy if there is no destination file
+		return true
+	}
+	return srcinfo.Size() != dstinfo.Size()
+}
+
 // Copier receives a copy request and copies from source to destination.
 func Copier() {
 	var req CopyRequest
 	for {
 		req = <-copychannel
-		src, err := os.Open(req.Source)
-		if err != nil {
-			log.Printf("%v", err)
-		}
 
 		pathname := filepath.Dir(req.Destination)
 		info, err := os.Stat(pathname)
@@ -41,8 +49,18 @@ func Copier() {
 			os.MkdirAll(pathname, 0x755)
 		} else if !info.IsDir() {
 			log.Printf("%s not a directory, cannot copy", pathname)
+			continue
 		}
 
+		if !shouldCopy(req) {
+			wg.Done()
+			continue
+		}
+
+		src, err := os.Open(req.Source)
+		if err != nil {
+			log.Printf("%v", err)
+		}
 		dst, err := os.Create(req.Destination)
 		if err != nil {
 			log.Printf("%v", err)
@@ -50,6 +68,7 @@ func Copier() {
 		io.Copy(dst, src)
 		dst.Close()
 		src.Close()
+		log.Printf("%s -> %s\n", req.Source, req.Destination)
 
 		wg.Done()
 	}
@@ -68,8 +87,6 @@ func findPictures(path string, d fs.DirEntry, err error) error {
 				return err
 			}
 			destfile := filepath.Join(destfolder, d.Name())
-
-			fmt.Printf("%s -> %s\n", path, destfile)
 
 			wg.Add(1)
 
@@ -111,6 +128,9 @@ func main() {
 	fmt.Printf("Camera folder %s", cameraDrive)
 
 	copychannel = make(chan CopyRequest)
+	go Copier()
+	go Copier()
+	go Copier()
 	go Copier()
 
 	filepath.WalkDir(cameraDrive, findPictures)
