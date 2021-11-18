@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"strings"
 
 	"github.com/shirou/gopsutil/v3/disk"
 )
@@ -34,6 +35,21 @@ func shouldCopy(req CopyRequest) bool {
 		return true
 	}
 	return srcinfo.Size() != dstinfo.Size()
+}
+
+func isImage(extension string) bool {
+	normalized := strings.ToLower(extension)
+	switch(normalized) {
+	case ".jpeg":
+		return true
+	case ".jpg":
+		return true
+	case ".dng":
+		return true
+	default:
+		return false
+	}
+	return false
 }
 
 // Copier receives a copy request and copies from source to destination.
@@ -77,7 +93,7 @@ func Copier() {
 func findPictures(path string, d fs.DirEntry, err error) error {
 
 	if d.Type().IsRegular() {
-		if filepath.Ext(path) == ".DNG" {
+		if isImage(filepath.Ext(path)) {
 			info, err := d.Info()
 			if err != nil {
 				return err
@@ -103,8 +119,23 @@ func findPictures(path string, d fs.DirEntry, err error) error {
 
 func main() {
 
-	flag.StringVar(&destFolder, "dest", "", "Destinatin folder to copy images to")
+	var showHelp bool
+	var showVersion bool
+	const VERSION = "1.0.1"
+
+	flag.StringVar(&destFolder, "dest", "", "Destination folder to copy images to")
+	flag.BoolVar(&showHelp, "help", false, "Display help message")
+	flag.BoolVar(&showVersion, "version", false, "Display version")
 	flag.Parse()
+
+	if showHelp {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+	if showVersion {
+		fmt.Printf("Photo Unloader version %s\n", VERSION)
+		os.Exit(1)
+	}
 
 	partitions, err := disk.Partitions(false)
 	if err != nil {
