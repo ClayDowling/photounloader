@@ -46,6 +46,8 @@ func isImage(extension string) bool {
 		return true
 	case ".dng":
 		return true
+	case ".orf":
+		return true
 	default:
 		return false
 	}
