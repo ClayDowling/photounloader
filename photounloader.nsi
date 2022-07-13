@@ -1,4 +1,4 @@
-OutFile "photounloader-1.0.1.exe"
+OutFile "photounloader-1.0.2.exe"
 
 InstallDir $PROGRAMFILES64\photounloader
 

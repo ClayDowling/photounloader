@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"strings"
+	"sync"
 
 	"github.com/shirou/gopsutil/v3/disk"
 )
@@ -39,7 +39,7 @@ func shouldCopy(req CopyRequest) bool {
 
 func isImage(extension string) bool {
 	normalized := strings.ToLower(extension)
-	switch(normalized) {
+	switch normalized {
 	case ".jpeg":
 		return true
 	case ".jpg":
@@ -123,7 +123,7 @@ func main() {
 
 	var showHelp bool
 	var showVersion bool
-	const VERSION = "1.0.1"
+	const VERSION = "1.0.2"
 
 	flag.StringVar(&destFolder, "dest", "", "Destination folder to copy images to")
 	flag.BoolVar(&showHelp, "help", false, "Display help message")
