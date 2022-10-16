@@ -10,10 +10,15 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
+const dateFormat = "2006-01-02"
+
+var dateFilter string
+var notBefore time.Time
 var cameraDrive string
 var destFolder string
 var wg sync.WaitGroup
@@ -30,6 +35,12 @@ func shouldCopy(req CopyRequest) bool {
 	if err != nil { // Do not copy if there is no source file
 		return false
 	}
+
+	// Reject files before the date filter cutoff
+	if srcinfo.ModTime().Before(notBefore) {
+		return false
+	}
+
 	dstinfo, err := os.Stat(req.Destination)
 	if err != nil { // Definite copy if there is no destination file
 		return true
@@ -123,12 +134,21 @@ func main() {
 
 	var showHelp bool
 	var showVersion bool
-	const VERSION = "1.0.2"
+	const VERSION = "1.0.3"
 
 	flag.StringVar(&destFolder, "dest", "", "Destination folder to copy images to")
 	flag.BoolVar(&showHelp, "help", false, "Display help message")
 	flag.BoolVar(&showVersion, "version", false, "Display version")
+	flag.StringVar(&dateFilter, "after", "", "Unload photos on or after this date, format YYYY-MM-DD")
 	flag.Parse()
+
+	if dateFilter != "" {
+		var err error
+		notBefore, err = time.Parse(dateFormat, dateFilter)
+		if err != nil {
+			log.Fatalf("%s is not a valid date.  Try a format like %s (YYYY-MM-DD)", dateFilter, dateFormat)
+		}
+	}
 
 	if showHelp {
 		flag.PrintDefaults()
